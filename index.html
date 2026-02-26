@@ -64,7 +64,7 @@ td{padding:10px}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:#0a0a1a}
 ::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:4px}
-@media(max-width:768px){.charts{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}}
+@media(max-width:768px){.charts{grid-template-columns:1fr !important}.kpis{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}}
 </style>
 </head>
 <body>
@@ -88,17 +88,18 @@ td{padding:10px}
   </div>
   <div id="kpiGrid" class="kpis"></div>
   <div id="filtersBar" class="filters-bar" style="display:none"></div>
+  <div class="charts" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><h3 id="icTitle0"></h3><canvas id="chartIC0"></canvas></div>
+    <div class="card"><h3 id="icTitle1"></h3><canvas id="chartIC1"></canvas></div>
+    <div class="card"><h3 id="icTitle2"></h3><canvas id="chartIC2"></canvas></div>
+  </div>
+  <div class="charts">
+    <div class="card"><h3>Création de projets par semaine</h3><canvas id="chartWeek"></canvas></div>
+    <div class="card"><h3>Heures internes — Top organisations</h3><canvas id="chartHours"></canvas></div>
+  </div>
   <div class="charts">
     <div class="card"><h3>Statut des projets</h3><canvas id="chartProjets"></canvas></div>
-    <div class="card"><h3>Statut des tâches (jalons)</h3><canvas id="chartTaches"></canvas></div>
-  </div>
-  <div class="charts">
     <div class="card"><h3>Distribution par territoire</h3><canvas id="chartTerr"></canvas></div>
-    <div class="card"><h3>Création de projets par semaine</h3><canvas id="chartWeek"></canvas></div>
-  </div>
-  <div class="charts">
-    <div class="card"><h3>Portefeuille IC Responsable</h3><canvas id="chartIC"></canvas></div>
-    <div class="card"><h3>Heures internes — Top organisations</h3><canvas id="chartHours"></canvas></div>
   </div>
   <div class="card" style="margin-bottom:16px">
     <h3 id="tableTitle"></h3>
@@ -228,24 +229,37 @@ function renderCharts(){
   destroyCharts();
   Chart.defaults.color="#5a5a7a";Chart.defaults.font.family="'DM Sans',sans-serif";Chart.defaults.font.size=11;
 
-  var psVals=unique(allP,function(p){return p.ps});
-  charts.proj=new Chart(document.getElementById("chartProjets"),{type:"doughnut",data:{labels:psVals,datasets:[{data:psVals.map(function(s){return allP.filter(function(p){return p.ps===s}).length}),backgroundColor:psVals.map(function(s){return PC[s]||"#666"}),borderWidth:0}]},options:{cutout:"58%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",padding:12,font:{size:11}}}}}});
+  /* Row 1: 3 IC donut charts */
+  var icList=unique(DATA,function(r){return r.ic});
+  var icColors={"Alexandre Caron":"#818cf8","Jacques Drolet":"#f472b6","Souad Laidi":"#fbbf24"};
+  for(var idx=0;idx<3;idx++){
+    var icName=icList[idx]||"";
+    var titleEl=document.getElementById("icTitle"+idx);
+    var canvasEl=document.getElementById("chartIC"+idx);
+    if(!icName){titleEl.textContent="—";continue}
+    var icProjs=allP.filter(function(p){return p.ic===icName});
+    var psLabels=unique(icProjs,function(p){return p.ps});
+    var psCounts=psLabels.map(function(s){return icProjs.filter(function(p){return p.ps===s}).length});
+    var psColors=psLabels.map(function(s){return PC[s]||"#666"});
+    var short=icName.split(" ")[0];
+    titleEl.innerHTML=short+' <span style="font-size:11px;font-weight:400;color:'+(icColors[icName]||"#a5b4fc")+'">'+icProjs.length+' projets</span>';
+    charts["ic"+idx]=new Chart(canvasEl,{type:"doughnut",data:{labels:psLabels,datasets:[{data:psCounts,backgroundColor:psColors,borderWidth:0}]},options:{cutout:"58%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",padding:10,font:{size:10}}}}}});
+  }
 
-  var tLabels=SO.filter(function(s){return DATA.some(function(r){return mergedSt(r.st)===s})});
-  charts.taches=new Chart(document.getElementById("chartTaches"),{type:"doughnut",data:{labels:tLabels,datasets:[{data:tLabels.map(function(s){return DATA.filter(function(r){return mergedSt(r.st)===s}).length}),backgroundColor:tLabels.map(function(s){return SC[s]}),borderWidth:0}]},options:{cutout:"58%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",padding:12,font:{size:11}}}}}});
-
-  var terrList=unique(allP,function(p){return p.tr});
-  charts.terr=new Chart(document.getElementById("chartTerr"),{type:"doughnut",data:{labels:terrList,datasets:[{data:terrList.map(function(t){return allP.filter(function(p){return p.tr===t}).length}),backgroundColor:terrList.map(function(t){return TR_C[t]||"#666"}),borderWidth:0}]},options:{cutout:"58%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",padding:12,font:{size:11}}}}}});
-
+  /* Row 2: Bar charts */
   var wm={};allP.forEach(function(p){if(!p.dc)return;var wk=getWeekLabel(p.dc);wm[wk]=(wm[wk]||{wk:wk,ts:new Date(p.dc+"T00:00:00").getTime(),n:0});wm[wk].n++});
   var wArr=Object.values(wm).sort(function(a,b){return a.ts-b.ts});
   charts.week=new Chart(document.getElementById("chartWeek"),{type:"bar",data:{labels:wArr.map(function(w){return"Sem. "+w.wk}),datasets:[{label:"Projets",data:wArr.map(function(w){return w.n}),backgroundColor:"#818cf8",borderRadius:4}]},options:{scales:{x:{grid:{display:false},ticks:{maxRotation:45,font:{size:9}}},y:{grid:{color:"#1e1e3a"},ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
 
-  var icList=unique(DATA,function(r){return r.ic});
-  charts.ic=new Chart(document.getElementById("chartIC"),{type:"bar",data:{labels:icList.map(function(n){return n.split(" ")[0]}),datasets:SO.map(function(s){return{label:s,data:icList.map(function(ic){return DATA.filter(function(r){return r.ic===ic&&mergedSt(r.st)===s}).length}),backgroundColor:SC[s]}})},options:{scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:"#1e1e3a"}}},plugins:{legend:{position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",padding:8,font:{size:10}}}}}});
-
   var topH=allP.filter(function(p){return p.hrs>0&&p.org}).sort(function(a,b){return b.hrs-a.hrs}).slice(0,10);
   charts.hrs=new Chart(document.getElementById("chartHours"),{type:"bar",data:{labels:topH.map(function(p){return p.org.length>25?p.org.slice(0,25)+"\u2026":p.org}),datasets:[{label:"Heures",data:topH.map(function(p){return Math.round(p.hrs*10)/10}),backgroundColor:"#818cf8",borderRadius:4}]},options:{indexAxis:"y",scales:{x:{grid:{color:"#1e1e3a"},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10,color:"#8a8aaa"}}}},plugins:{legend:{display:false}}}});
+
+  /* Row 3: Donut charts */
+  var psVals=unique(allP,function(p){return p.ps});
+  charts.proj=new Chart(document.getElementById("chartProjets"),{type:"doughnut",data:{labels:psVals,datasets:[{data:psVals.map(function(s){return allP.filter(function(p){return p.ps===s}).length}),backgroundColor:psVals.map(function(s){return PC[s]||"#666"}),borderWidth:0}]},options:{cutout:"58%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",padding:12,font:{size:11}}}}}});
+
+  var terrList=unique(allP,function(p){return p.tr});
+  charts.terr=new Chart(document.getElementById("chartTerr"),{type:"doughnut",data:{labels:terrList,datasets:[{data:terrList.map(function(t){return allP.filter(function(p){return p.tr===t}).length}),backgroundColor:terrList.map(function(t){return TR_C[t]||"#666"}),borderWidth:0}]},options:{cutout:"58%",plugins:{legend:{position:"bottom",labels:{usePointStyle:true,pointStyle:"circle",padding:12,font:{size:11}}}}}});
 }
 
 /* === Table === */
