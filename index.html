@@ -60,7 +60,7 @@ td{padding:10px}
 .arrow{margin-right:6px;font-size:10px;color:#94a3b8;display:inline-block;transition:transform .2s}
 .arrow.open{transform:rotate(90deg)}
 .nouv{margin-left:6px;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;letter-spacing:.5px}
-.org-name{color:#1e293b;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.org-name{color:#1e293b;font-weight:500;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:#f0f2f5}
 ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
@@ -129,7 +129,7 @@ function parseCSV(text){
   var r=Papa.parse(text,{header:false,skipEmptyLines:true});
   if(!r.data||r.data.length<2)return null;
   var hdr=r.data[0];
-  var ci={org:findCol(hdr,["organisation"]),cr:findCol(hdr,["coll"]),terr:findCol(hdr,["territoire"]),ps:findCol(hdr,["statut","projet"]),resp:findCol(hdr,["responsable"]),etape:findCol(hdr,["tape"]),dm:findCol(hdr,["derni"]),comm:findCol(hdr,["commentaire"]),h:findCol(hdr,["heures"]),ic:findCol(hdr,["responsable","dossier"]),sj:findCol(hdr,["sujets"])};
+  var ci={org:findCol(hdr,["organisation"]),cr:findCol(hdr,["coll"]),terr:findCol(hdr,["territoire"]),ps:findCol(hdr,["statut","projet"]),resp:findCol(hdr,["responsable"]),etape:findCol(hdr,["tape"]),dm:findCol(hdr,["derni"]),comm:findCol(hdr,["commentaire"]),h:findCol(hdr,["heures"]),ic:findCol(hdr,["responsable","dossier"]),sj:findCol(hdr,["sujets"]),np:findCol(hdr,["nom","projet"])};
   var stC=[];for(var j=0;j<hdr.length;j++){var lc=hdr[j].toLowerCase().replace(/[\xa0\u00a0]/g," ");if(lc.indexOf("statut")>=0&&lc.indexOf("projet")<0)stC.push(j)}
   ci.st=stC.length>0?stC[0]:0;
   var dcI=-1;for(var j2=0;j2<hdr.length;j2++){var lc2=hdr[j2].toLowerCase().replace(/[\xa0\u00a0]/g," ");if(lc2.indexOf("cr")>=0&&lc2.indexOf("ation")>=0){dcI=j2;break}}
@@ -140,7 +140,7 @@ function parseCSV(text){
     var et=ci.etape>=0?(row[ci.etape]||"").trim():"";if(!et)continue;
     var org=ci.org>=0?(row[ci.org]||"").trim():"";if(!org)continue;
     var hV=ci.h>=0?parseFloat(row[ci.h]):0;
-    out.push({o:org,dc:ci.dc>=0?(row[ci.dc]||"").trim().slice(0,10):"",ic:ci.ic>=0?(row[ci.ic]||"").trim():"",cr:ci.cr>=0?(row[ci.cr]||"").trim()||null:null,tr:normTerr(ci.terr>=0?(row[ci.terr]||"").trim():""),ps:ci.ps>=0?(row[ci.ps]||"").trim():"",re:ci.resp>=0?(row[ci.resp]||"").trim()||null:null,et:et,st:normSt(ci.st>=0?(row[ci.st]||"").trim():""),dm:ci.dm>=0?(row[ci.dm]||"").trim().slice(0,10):"",h:isNaN(hV)?0:hV,cm:ci.comm>=0?(row[ci.comm]||"").trim()||undefined:undefined,sj:ci.sj>=0?(row[ci.sj]||"").trim()||null:null});
+    out.push({o:org,dc:ci.dc>=0?(row[ci.dc]||"").trim().slice(0,10):"",ic:ci.ic>=0?(row[ci.ic]||"").trim():"",cr:ci.cr>=0?(row[ci.cr]||"").trim()||null:null,tr:normTerr(ci.terr>=0?(row[ci.terr]||"").trim():""),ps:ci.ps>=0?(row[ci.ps]||"").trim():"",re:ci.resp>=0?(row[ci.resp]||"").trim()||null:null,et:et,st:normSt(ci.st>=0?(row[ci.st]||"").trim():""),dm:ci.dm>=0?(row[ci.dm]||"").trim().slice(0,10):"",h:isNaN(hV)?0:hV,cm:ci.comm>=0?(row[ci.comm]||"").trim()||undefined:undefined,sj:ci.sj>=0?(row[ci.sj]||"").trim()||null:null,np:ci.np>=0?(row[ci.np]||"").trim()||null:null});
   }
   return out.length>0?out:null;
 }
@@ -155,7 +155,7 @@ function unique(arr,fn){var s=new Set();arr.forEach(function(x){var v=fn(x);if(v
 
 /* === Compute === */
 function computeProjects(){
-  var m={};DATA.forEach(function(r){if(!r.o)return;if(!m[r.o])m[r.o]={org:r.o,dc:r.dc,ic:r.ic,cr:r.cr||null,tr:r.tr,ps:r.ps,sj:r.sj||null,tasks:[],total:0,done:0,hrs:0,blocked:false};m[r.o].tasks.push(r);m[r.o].total++;if(r.st==="Complété")m[r.o].done++;m[r.o].hrs+=(r.h||0);if(BLOCKED.indexOf(r.st)>=0)m[r.o].blocked=true;if(r.cr&&!m[r.o].cr)m[r.o].cr=r.cr;if(r.sj&&!m[r.o].sj)m[r.o].sj=r.sj});
+  var m={};DATA.forEach(function(r){if(!r.o)return;var key=r.np||r.o;if(!m[key])m[key]={org:r.o,np:key,dc:r.dc,ic:r.ic,cr:r.cr||null,tr:r.tr,ps:r.ps,sj:r.sj||null,tasks:[],total:0,done:0,hrs:0,blocked:false};m[key].tasks.push(r);m[key].total++;if(r.st==="Complété")m[key].done++;m[key].hrs+=(r.h||0);if(BLOCKED.indexOf(r.st)>=0)m[key].blocked=true;if(r.cr&&!m[key].cr)m[key].cr=r.cr;if(r.sj&&!m[key].sj)m[key].sj=r.sj});
   allP=Object.values(m);
 }
 
@@ -229,8 +229,8 @@ function renderCharts(){
 
   /* Use filtered data */
   var fp=filteredP;
-  var fOrgs={};fp.forEach(function(p){fOrgs[p.org]=true});
-  var fData=DATA.filter(function(r){return fOrgs[r.o]});
+  var fOrgs={};fp.forEach(function(p){fOrgs[p.np]=true});
+  var fData=DATA.filter(function(r){return fOrgs[r.np||r.o]});
 
   /* Donut 1: Statut des projets */
   var psVals=unique(fp,function(p){return p.ps});
@@ -251,8 +251,8 @@ function renderCharts(){
   charts.week=new Chart(document.getElementById("chartWeek"),{type:"bar",data:{labels:wArr.map(function(w){return"Sem. "+w.wk}),datasets:[{label:"Projets",data:wArr.map(function(w){return w.n}),backgroundColor:"#818cf8",borderRadius:4}]},options:{scales:{x:{grid:{display:false},ticks:{maxRotation:45,font:{size:9}}},y:{grid:{color:"#e2e8f0"},ticks:{stepSize:1}}},plugins:{legend:{display:false}}}});
 
   /* Bar 2: Top heures */
-  var topH=fp.filter(function(p){return p.hrs>0&&p.org}).sort(function(a,b){return b.hrs-a.hrs}).slice(0,10);
-  charts.hrs=new Chart(document.getElementById("chartHours"),{type:"bar",data:{labels:topH.map(function(p){return p.org.length>25?p.org.slice(0,25)+"\u2026":p.org}),datasets:[{label:"Heures",data:topH.map(function(p){return Math.round(p.hrs*10)/10}),backgroundColor:"#818cf8",borderRadius:4}]},options:{indexAxis:"y",scales:{x:{grid:{color:"#e2e8f0"},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10,color:"#64748b"}}}},plugins:{legend:{display:false}}}});
+  var topH=fp.filter(function(p){return p.hrs>0&&p.np}).sort(function(a,b){return b.hrs-a.hrs}).slice(0,10);
+  charts.hrs=new Chart(document.getElementById("chartHours"),{type:"bar",data:{labels:topH.map(function(p){var n=p.org;return n.length>25?n.slice(0,25)+"\u2026":n}),datasets:[{label:"Heures",data:topH.map(function(p){return Math.round(p.hrs*10)/10}),backgroundColor:"#818cf8",borderRadius:4}]},options:{indexAxis:"y",scales:{x:{grid:{color:"#e2e8f0"},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:10,color:"#64748b"}}}},plugins:{legend:{display:false}}}});
 }
 
 /* === Table === */
@@ -279,12 +279,17 @@ function renderTable(){
   if(filteredP.length===0){document.getElementById("tbody").innerHTML='<tr><td colspan="9" style="padding:30px;text-align:center;color:#94a3b8;font-size:13px">Aucun projet ne correspond aux filtres.</td></tr>';return}
 
   var html="";
+  /* Detect orgs with multiple projects */
+  var orgCount={};filteredP.forEach(function(p){orgCount[p.org]=(orgCount[p.org]||0)+1});
   filteredP.forEach(function(p,i){
     var pct=p.total>0?Math.round(p.done/p.total*100):0;
-    var isE=expanded===p.org;var nw=isNew(p.dc);
-    var orgEsc=esc(p.org).replace(/'/g,"\\'");
-    html+='<tr class="row-main'+(isE?" expanded":"")+'" onclick="toggleExp(\''+orgEsc+'\')">'
-      +'<td class="org-name"><span class="arrow'+(isE?" open":"")+'">&#9654;</span>'+esc(p.org)+(p.blocked?'<span style="margin-left:6px;font-size:10px">&#9888;&#65039;</span>':"")+(nw?'<span class="nouv">NOUV</span>':"")+'</td>'
+    var isE=expanded===p.np;var nw=isNew(p.dc);
+    var npEsc=esc(p.np).replace(/'/g,"\\'");
+    /* Extract short project label for multi-project orgs */
+    var projLabel="";
+    if(orgCount[p.org]>1&&p.np){var parts=p.np.split(" - ");projLabel=parts.length>2?parts.slice(2).join(" - "):parts[parts.length-1]}
+    html+='<tr class="row-main'+(isE?" expanded":"")+'" onclick="toggleExp(\''+npEsc+'\')">'
+      +'<td class="org-name"><span class="arrow'+(isE?" open":"")+'">&#9654;</span>'+esc(p.org)+(projLabel?'<span style="margin-left:6px;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:600;background:#eef2ff;color:#6366f1;border:1px solid #c7d2fe">'+esc(projLabel)+'</span>':"")+(p.blocked?'<span style="margin-left:6px;font-size:10px">&#9888;&#65039;</span>':"")+(nw?'<span class="nouv">NOUV</span>':"")+'</td>'
       +'<td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:'+(IC_C[p.ic]||"#666")+'"></span><span style="font-size:11px;color:#64748b">'+esc(p.ic||"\u2014")+'</span></span></td>'
       +'<td style="font-size:11px;color:#64748b">'+esc(p.cr||"\u2014")+'</td>'
       +'<td><span style="font-size:10.5px;color:'+(TR_C[p.tr]||"#64748b")+';font-weight:600">'+esc(p.tr||"\u2014")+'</span></td>'
@@ -308,7 +313,7 @@ function renderTable(){
   document.getElementById("tbody").innerHTML=html;
 }
 
-function toggleExp(org){expanded=expanded===org?null:org;renderTable()}
+function toggleExp(np){expanded=expanded===np?null:np;renderTable()}
 
 function renderFooter(){
   var tot=allP.length,tT=DATA.length,tH=Math.round(DATA.reduce(function(s,r){return s+(r.h||0)},0)*10)/10;
