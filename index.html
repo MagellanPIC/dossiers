@@ -15,7 +15,7 @@ body{background:#f0f2f5;font-family:'DM Sans',sans-serif;color:#1e293b;min-heigh
 .dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 14px #22c55e55;display:inline-block;margin-right:10px;vertical-align:middle}
 h1{font-size:24px;font-weight:700;display:inline;background:linear-gradient(135deg,#334155,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .sub{color:#64748b;font-size:12px;margin:2px 0 0 18px;font-family:'JetBrains Mono',monospace}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px}
 .kpi{background:#ffffff;border-radius:12px;padding:16px 14px;border:1px solid #e2e8f0;position:relative;overflow:hidden;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .kpi.clickable{cursor:pointer}.kpi.clickable:hover{transform:scale(1.02);box-shadow:0 4px 12px rgba(0,0,0,.08)}
 .kpi.active{transform:scale(1.02)}
@@ -108,7 +108,7 @@ td{padding:10px}
 /* === Constants === */
 var BLOCKED=["En attente","En révision"];
 var SC={"Complété":"#22c55e","En cours":"#3b82f6","Planifié":"#a78bfa","À faire / En attente":"#eab308","En révision":"#06b6d4","Prêt à livrer":"#2dd4bf"};
-var PC={"Terminé":"#22c55e","En cours":"#3b82f6","En pause":"#94a3b8"};
+var PC={"Terminé":"#22c55e","En cours":"#3b82f6","En pause":"#94a3b8","À venir":"#8b5cf6","Abandonné":"#ef4444"};
 var SO=["Complété","En cours","Planifié","Prêt à livrer","En révision","À faire / En attente"];
 var IC_C={"Alexandre Caron":"#818cf8","Jacques Drolet":"#f472b6","Souad Laidi":"#fbbf24"};
 var TR_C={"Centre-Ouest":"#60a5fa","Centre-Ville":"#f472b6","Est-de-l'île":"#34d399","Grand Sud-Ouest":"#fbbf24","Centre-Est":"#c084fc","Ouest-de-l'Île":"#fb923c"};
@@ -164,6 +164,7 @@ function applyFilters(){
   if(kF==="Terminé")l=l.filter(function(p){return p.ps==="Terminé"});
   else if(kF==="En cours")l=l.filter(function(p){return p.ps==="En cours"});
   else if(kF==="En pause")l=l.filter(function(p){return p.ps==="En pause"});
+  else if(kF==="À venir")l=l.filter(function(p){return p.ps==="À venir"});
   else if(kF==="Bloqué")l=l.filter(function(p){return p.blocked});
   if(tIC!=="Tous")l=l.filter(function(p){return p.ic===tIC});
   if(tPS!=="Tous")l=l.filter(function(p){return p.ps===tPS});
@@ -177,13 +178,14 @@ function applyFilters(){
 function render(){computeProjects();applyFilters();renderKPIs();renderFilters();renderCharts();renderTable();renderFooter()}
 
 function renderKPIs(){
-  var tot=allP.length,term=allP.filter(function(p){return p.ps==="Terminé"}).length,ec=allP.filter(function(p){return p.ps==="En cours"}).length,pau=allP.filter(function(p){return p.ps==="En pause"}).length;
+  var tot=allP.length,term=allP.filter(function(p){return p.ps==="Terminé"}).length,ec=allP.filter(function(p){return p.ps==="En cours"}).length,pau=allP.filter(function(p){return p.ps==="En pause"}).length,av=allP.filter(function(p){return p.ps==="À venir"}).length;
   var tT=DATA.length,dT=DATA.filter(function(r){return r.st==="Complété"}).length,cR=tT>0?Math.round(dT/tT*100):0;
   var tH=Math.round(DATA.reduce(function(s,r){return s+(r.h||0)},0)*10)/10;
   var bl=allP.filter(function(p){return p.blocked}).length;
   var kpis=[
     {l:"Projets",v:tot,s:term+" terminé"+(term>1?"s":""),i:"&#128193;",a:"#4f46e5",f:null},
     {l:"En cours",v:ec,s:"projets actifs",i:"&#128260;",a:"#3b82f6",f:"En cours"},
+    {l:"À venir",v:av,s:"projet"+(av>1?"s":"")+" à venir",i:"&#128197;",a:"#8b5cf6",f:"À venir"},
     {l:"Terminés",v:term,s:"projets livrés",i:"&#9989;",a:"#22c55e",f:"Terminé"},
     {l:"En pause",v:pau,s:"projet(s)",i:"&#9199;&#65039;",a:"#94a3b8",f:"En pause"},
     {l:"Complétion",v:cR+"%",s:dT+"/"+tT+" tâches",i:"&#128202;",a:cR>70?"#22c55e":cR>40?"#eab308":"#ef4444",f:null},
@@ -210,7 +212,7 @@ function renderFilters(){
   if(!hasF){bar.style.display="none";return}
   bar.style.display="flex";
   var h='<span class="lbl">&#128269; Filtres :</span>';
-  if(kF)h+='<span class="fbadge" style="background:'+(PC[kF]||"#f97316")+'18;color:'+(PC[kF]||"#f97316")+';border:1px solid '+(PC[kF]||"#f97316")+'30" onclick="kF=null;render()">'+(kF==="Bloqué"?"&#9888;&#65039; Bloqués":esc(kF))+' &#10005;</span>';
+  if(kF)h+='<span class="fbadge" style="background:'+(PC[kF]||"#f97316")+'18;color:'+(PC[kF]||"#f97316")+';border:1px solid '+(PC[kF]||"#f97316")+'30" onclick="kF=null;render()">'+(kF==="Bloqué"?"&#9888;&#65039; Bloqués":kF==="À venir"?"&#128197; À venir":esc(kF))+' &#10005;</span>';
   if(tIC!=="Tous")h+='<span class="fbadge" style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe" onclick="tIC=\'Tous\';render()">'+esc(tIC)+' &#10005;</span>';
   if(tCR!=="Tous")h+='<span class="fbadge" style="background:#fce7f3;color:#f472b6;border:1px solid #f9a8d4" onclick="tCR=\'Tous\';render()">&#128100; '+esc(tCR)+' &#10005;</span>';
   if(tTR!=="Tous"){var c=TR_C[tTR]||"#818cf8";h+='<span class="fbadge" style="background:'+c+'18;color:'+c+';border:1px solid '+c+'30" onclick="tTR=\'Tous\';render()">'+esc(tTR)+' &#10005;</span>'}
